@@ -1,0 +1,45 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: multimodal-app-entry-backend
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://127.0.0.1:5432/multimodal_app?currentSchema=app}
+    username: ${DB_USERNAME:mm_app}
+    password: ${DB_PASSWORD:change_me}
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: app
+    schemas: app
+    baseline-on-migrate: true
+    validate-on-migrate: true
+  jackson:
+    time-zone: Asia/Shanghai
+  mvc:
+    problemdetails:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+logging:
+  level:
+    root: INFO
+    org.flywaydb: INFO
+    com.shupai.multimodal.appentry: INFO
