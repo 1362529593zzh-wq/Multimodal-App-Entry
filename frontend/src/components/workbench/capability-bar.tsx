@@ -1,61 +1,67 @@
-﻿import { AppstoreAddOutlined, AudioOutlined, FilePptOutlined, PictureOutlined, VideoCameraOutlined } from '@ant-design/icons';
-import { Button, Dropdown, Space, Tag } from 'antd';
-import type { MenuProps } from 'antd';
+import { AudioOutlined, CloseOutlined, FilePptOutlined, PictureOutlined, VideoCameraOutlined } from '@ant-design/icons';
+import { Button, Tooltip } from 'antd';
 import type { ReactNode } from 'react';
 import type { WorkbenchFunction } from '../../types/api';
 
 interface CapabilityBarProps {
   capabilities: WorkbenchFunction[];
   selectedCapability: string;
+  pinned: boolean;
   onSelect: (capabilityCode: string) => void;
+  onClear: () => void;
 }
+
+const capabilityOrder = ['image_generation', 'text_to_speech', 'text_to_video', 'text_to_ppt'];
 
 const iconMap: Record<string, ReactNode> = {
   image_generation: <PictureOutlined />,
-  image_recognition: <AppstoreAddOutlined />,
   text_to_speech: <AudioOutlined />,
-  text_to_ppt: <FilePptOutlined />,
   text_to_video: <VideoCameraOutlined />,
+  text_to_ppt: <FilePptOutlined />,
 };
 
-export const CapabilityBar = ({ capabilities, selectedCapability, onSelect }: CapabilityBarProps) => {
-  const mainItems = capabilities.filter((item) => item.showInMainBar || !item.showInMoreMenu);
-  const moreItems = capabilities.filter((item) => item.showInMoreMenu && !item.showInMainBar);
+const labelMap: Record<string, string> = {
+  image_generation: '\u56fe\u50cf\u751f\u6210',
+  text_to_speech: '\u6587\u751f\u8bed\u97f3',
+  text_to_video: '\u89c6\u9891\u751f\u6210',
+  text_to_ppt: '\u6587\u751f PPT',
+};
 
-  const menuItems: MenuProps['items'] = moreItems.map((item) => ({
-    key: item.functionCode,
-    label: item.functionName,
-  }));
+export const CapabilityBar = ({ capabilities, selectedCapability, pinned, onSelect, onClear }: CapabilityBarProps) => {
+  const orderedCapabilities = capabilityOrder
+    .map((code) => capabilities.find((item) => item.functionCode === code))
+    .filter((item): item is WorkbenchFunction => Boolean(item));
+  const visibleCapabilities = pinned
+    ? orderedCapabilities.filter((item) => item.functionCode === selectedCapability)
+    : orderedCapabilities;
 
   return (
-    <div className="capability-bar">
-      <div className="capability-bar__header">
-        <Tag color="cyan">Capabilities</Tag>
-        <span className="table-subtext">手动选择优先，后续第 5 步再接自动意图识别。</span>
-      </div>
-      <Space wrap>
-        {mainItems.map((capability) => (
-          <Button
-            key={capability.functionCode}
-            type={selectedCapability === capability.functionCode ? 'primary' : 'default'}
-            ghost={selectedCapability !== capability.functionCode}
-            icon={iconMap[capability.functionCode] ?? <AppstoreAddOutlined />}
-            onClick={() => onSelect(capability.functionCode)}
-          >
-            {capability.functionName}
-          </Button>
-        ))}
-        {menuItems.length > 0 ? (
-          <Dropdown
-            menu={{
-              items: menuItems,
-              onClick: ({ key }) => onSelect(String(key)),
-            }}
-          >
-            <Button>更多能力</Button>
-          </Dropdown>
-        ) : null}
-      </Space>
+    <div className="capability-bar" aria-label="capability selector">
+      {visibleCapabilities.map((capability) => {
+        const selected = selectedCapability === capability.functionCode;
+        const label = labelMap[capability.functionCode] ?? capability.functionName;
+
+        return (
+          <Tooltip key={capability.functionCode} title={label}>
+            <Button
+              type={selected ? 'primary' : 'text'}
+              icon={iconMap[capability.functionCode] ?? <PictureOutlined />}
+              onClick={() => onSelect(capability.functionCode)}
+            >
+              {label}
+              {pinned && selected ? (
+                <CloseOutlined
+                  className="capability-bar__close"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onClear();
+                  }}
+                />
+              ) : null}
+            </Button>
+          </Tooltip>
+        );
+      })}
     </div>
   );
 };

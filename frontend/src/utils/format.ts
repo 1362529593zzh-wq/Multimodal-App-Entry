@@ -37,3 +37,19 @@ export const compactText = (value?: string | null, fallback = '--') => {
   }
   return value;
 };
+
+export const formatDuration = (value?: number | null) => {
+  if (value === undefined || value === null) {
+    return '--';
+  }
+  if (value < 1000) {
+    return `${value} ms`;
+  }
+  const seconds = value / 1000;
+  if (seconds < 60) {
+    return `${seconds.toFixed(2)} s`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = Math.round(seconds % 60);
+  return `${minutes} min ${restSeconds} s`;
+};

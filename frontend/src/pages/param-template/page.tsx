@@ -204,7 +204,6 @@ export const ParamTemplatePage = () => {
     {
       title: '操作',
       key: 'action',
-      fixed: 'right',
       width: 170,
       render: (_, record) => (
         <Space>
@@ -307,7 +306,7 @@ export const ParamTemplatePage = () => {
           columns={columns}
           dataSource={query.data?.records ?? []}
           className="data-table"
-          scroll={{ x: 1720 }}
+          scroll={{ x: 1820 }}
           pagination={{
             current: pagination.pageNum,
             pageSize: pagination.pageSize,

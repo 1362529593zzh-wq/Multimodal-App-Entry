@@ -63,7 +63,7 @@ export const fallbackWorkbenchFunctions: WorkbenchFunction[] = [
   {
     id: 5,
     functionCode: 'text_to_video',
-    functionName: '文生视频',
+    functionName: '视频生成',
     icon: 'text-to-video',
     sortOrder: 5,
     allowManualModelSelect: true,
@@ -79,7 +79,7 @@ const fieldOptions = (values: string[]) => values.map((value) => ({ label: value
 
 const blueprints: Record<string, WorkbenchBlueprint> = {
   image_generation: {
-    placeholder: '描述一张你想生成的图片，例如“黄昏海边的未来主义灯塔海报”。',
+    placeholder: '描述你想要的图片',
     helper: '第 4 步先验证功能条和参数快捷区的交互，第 5 步再接任务编排与真实模型。',
     fields: [
       { key: 'ratio', label: '画幅比例', placeholder: '选择比例', options: fieldOptions(['1:1', '4:3', '16:9']) },
@@ -100,15 +100,15 @@ const blueprints: Record<string, WorkbenchBlueprint> = {
     ],
   },
   text_to_speech: {
-    placeholder: '输入要合成语音的文本，后续会接入试听与下载。',
+    placeholder: '输入要合成语音的文本',
     helper: '骨架阶段先验证参数切换与消息卡结构。',
     fields: [
-      { key: 'voice', label: '音色', placeholder: '选择音色', options: fieldOptions(['female', 'male', 'narrator']) },
-      { key: 'format', label: '格式', placeholder: '选择格式', options: fieldOptions(['mp3', 'wav']) },
+      { key: 'voice', label: '音色', placeholder: '选择音色', options: fieldOptions(['alloy', 'nova', 'shimmer']) },
+      { key: 'format', label: '格式', placeholder: '选择格式', options: fieldOptions(['mp3', 'pcm']) },
     ],
   },
   text_to_ppt: {
-    placeholder: '输入主题和提纲，后续第 5 步会把任务状态和文件结果打通。',
+    placeholder: '输入 PPT 主题和提纲',
     helper: '先把页数、模板风格等快捷项贴着输入区展开。',
     fields: [
       { key: 'template', label: '模板风格', placeholder: '选择风格', options: fieldOptions(['business', 'tech', 'minimal']) },
@@ -116,7 +116,7 @@ const blueprints: Record<string, WorkbenchBlueprint> = {
     ],
   },
   text_to_video: {
-    placeholder: '描述一个镜头或短片概念，例如“霓虹雨夜里穿过巷口的机车镜头”。',
+    placeholder: '描述你想要的视频',
     helper: '视频能力天然适合后续接异步任务链路，所以这一步先用 mock 演化状态卡。',
     fields: [
       { key: 'duration', label: '时长', placeholder: '选择时长', options: fieldOptions(['5s', '10s', '30s']) },

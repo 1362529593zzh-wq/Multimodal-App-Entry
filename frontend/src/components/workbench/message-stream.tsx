@@ -28,14 +28,14 @@ export const MessageStream = ({
 
   if (messages.length === 0) {
     return (
-      <Card className="surface-card workbench-stream">
+      <section className="workbench-stream">
         <EmptyConversation capabilities={capabilities} onSelect={onSelectCapability} />
-      </Card>
+      </section>
     );
   }
 
   return (
-    <Card className="surface-card workbench-stream">
+    <section className="workbench-stream">
       <div className="workbench-stream__list">
         {messages.map((message) => {
           if (message.type === 'task' && message.task) {
@@ -55,7 +55,7 @@ export const MessageStream = ({
                 className="message-row__avatar"
                 icon={message.role === 'user' ? <UserOutlined /> : <RobotOutlined />}
               />
-              <Card className="message-card message-card--text">
+              <Card className="message-card message-card--text" bordered={false}>
                 <div className="message-card__header">
                   <strong>
                     {message.role === 'user' ? '你' : message.role === 'assistant' ? '助手' : '系统'}
@@ -69,6 +69,6 @@ export const MessageStream = ({
         })}
         <div ref={bottomRef} />
       </div>
-    </Card>
+    </section>
   );
 };

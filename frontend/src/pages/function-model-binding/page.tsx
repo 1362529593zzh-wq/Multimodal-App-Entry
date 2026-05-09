@@ -180,7 +180,6 @@ export const FunctionModelBindingPage = () => {
     {
       title: '操作',
       key: 'action',
-      fixed: 'right',
       width: 170,
       render: (_, record) => (
         <Space>
@@ -284,7 +283,7 @@ export const FunctionModelBindingPage = () => {
           columns={columns}
           dataSource={query.data?.records ?? []}
           className="data-table"
-          scroll={{ x: 1280 }}
+          scroll={{ x: 1340 }}
           pagination={{
             current: pagination.pageNum,
             pageSize: pagination.pageSize,

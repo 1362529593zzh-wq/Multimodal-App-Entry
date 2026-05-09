@@ -20,8 +20,24 @@ public class ModelServiceEntity {
     private String modelName;
     private String modelType;
     private String functionCode;
+    private String vendorCode;
+    private String vendorName;
+    private String vendorType;
+    private String providerType;
     private String endpoint;
     private String authType;
+    private String secretRef;
+    private String apiKeyMasked;
+    private String secretKeyMasked;
+    private String apiKeySecret;
+    private String secretKeySecret;
+    private String requestMethod;
+    @TableField(typeHandler = JsonbStringTypeHandler.class)
+    private String headerTemplate;
+    @TableField(typeHandler = JsonbStringTypeHandler.class)
+    private String payloadTemplate;
+    @TableField(typeHandler = JsonbStringTypeHandler.class)
+    private String extraConfig;
     private Integer timeoutMs;
     private Boolean enabled;
     private String publishStatus;
@@ -29,6 +45,7 @@ public class ModelServiceEntity {
     private Boolean allowFrontSelect;
     @TableField(typeHandler = JsonbStringTypeHandler.class)
     private String supportedOptions;
+    private Integer sortOrder;
     private String remark;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;

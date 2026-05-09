@@ -1,29 +1,48 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, Tag, message } from 'antd';
-import { fetchServiceDictionary } from '../../api/config';
+import { Alert, Card, Input, Modal, message } from 'antd';
 import {
+  archiveWorkbenchConversation,
   createWorkbenchConversation,
+  fetchWorkbenchComposerSchema,
+  fetchWorkbenchConversations,
   fetchWorkbenchConversationMessages,
   fetchWorkbenchFunctions,
   fetchWorkbenchTask,
+  restoreWorkbenchConversation,
   submitWorkbenchChat,
+  updateWorkbenchConversation,
+  uploadWorkbenchFile,
 } from '../../api/workbench';
 import { Composer } from '../../components/workbench/composer';
+import { ConversationHistory, type ConversationScope } from '../../components/workbench/conversation-history';
 import { MessageStream } from '../../components/workbench/message-stream';
 import { WorkbenchShell } from '../../components/workbench/workbench-shell';
-import type { WorkbenchFunction } from '../../types/api';
+import type { WorkbenchComposerSchema, WorkbenchConversationSummary, WorkbenchFunction } from '../../types/api';
 import { fallbackWorkbenchFunctions, getWorkbenchBlueprint } from './mock';
 import type {
   WorkbenchDraftOptions,
   WorkbenchFollowUpState,
   WorkbenchMessageItem,
   WorkbenchResultData,
-  WorkbenchShellSidebarState,
   WorkbenchTaskCardData,
 } from './types';
 
 const createLocalId = (prefix: string) => `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+const workbenchCapabilityOrder = ['image_generation', 'image_recognition', 'text_to_speech', 'text_to_video', 'text_to_ppt'];
+const workbenchCapabilityNameMap: Record<string, string> = {
+  image_generation: '图像生成',
+  image_recognition: '图像识别',
+  text_to_speech: '文生语音',
+  text_to_video: '视频生成',
+  text_to_ppt: '文生 PPT',
+};
+
+const hasGarbledText = (text?: string | null) =>
+  Boolean(text && (/\?{2,}|�|鏂|鎼|鏈|褰|绛|鐢|å|ç|æ|ï¼|ä¸|é/.test(text)));
+
+const safeWorkbenchText = (text: string | null | undefined, fallback: string) =>
+  text && !hasGarbledText(text) ? text : fallback;
 
 const buildTaskStageText = (status: string) => {
   switch (status) {
@@ -42,9 +61,10 @@ const buildTaskStageText = (status: string) => {
 };
 
 const parseWorkbenchResult = (contentText: string | null, relatedTaskId: string | null): WorkbenchResultData => {
+  const readableContent = safeWorkbenchText(contentText, '任务已完成，结果已回流到当前会话。');
   const fallback: WorkbenchResultData = {
     title: '任务结果 / 后端回流',
-    summary: contentText ?? '任务已完成。',
+    summary: readableContent,
     chips: relatedTaskId ? [`task: ${relatedTaskId}`] : ['status: success'],
     actionLabel: '基于该结果继续',
     kind: 'generic',
@@ -59,15 +79,26 @@ const parseWorkbenchResult = (contentText: string | null, relatedTaskId: string 
     const chips = Array.from(
       new Set([...(parsed.chips ?? []), ...(relatedTaskId ? [`task: ${relatedTaskId}`] : ['status: success'])]),
     );
+    const fileName = parsed.fileName ?? '';
+    const mimeType = parsed.mimeType ?? '';
+    const looksLikeVideo =
+      parsed.kind === 'video' ||
+      Boolean(parsed.previewVideoUrl) ||
+      mimeType.startsWith('video/') ||
+      /\.(mp4|webm|mov|m4v)$/i.test(fileName) ||
+      /\.(mp4|webm|mov|m4v)(\?|$)/i.test(parsed.downloadUrl ?? '');
     return {
-      title: parsed.title ?? fallback.title,
-      summary: parsed.summary ?? fallback.summary,
+      title: safeWorkbenchText(parsed.title, fallback.title),
+      summary: safeWorkbenchText(parsed.summary, fallback.summary),
       chips,
       actionLabel: parsed.actionLabel ?? fallback.actionLabel,
-      kind: parsed.kind ?? (parsed.previewImageUrl ? 'image' : 'generic'),
+      kind: looksLikeVideo ? 'video' : parsed.kind ?? (parsed.previewImageUrl ? 'image' : 'generic'),
       previewImageUrl: parsed.previewImageUrl,
+      previewVideoUrl: parsed.previewVideoUrl ?? (looksLikeVideo ? parsed.downloadUrl : undefined),
       downloadUrl: parsed.downloadUrl,
       fileId: parsed.fileId,
+      fileName: parsed.fileName,
+      mimeType: parsed.mimeType,
     };
   } catch {
     return fallback;
@@ -76,12 +107,17 @@ const parseWorkbenchResult = (contentText: string | null, relatedTaskId: string 
 
 export const WorkbenchPage = () => {
   const queryClient = useQueryClient();
+  const [conversationScope, setConversationScope] = useState<ConversationScope>('active');
   const [conversationId, setConversationId] = useState<string>();
+  const [draftConversationMode, setDraftConversationMode] = useState(false);
+  const [conversationKeyword, setConversationKeyword] = useState('');
   const [selectedCapability, setSelectedCapability] = useState('image_generation');
   const [draftTexts, setDraftTexts] = useState<Record<string, string>>({});
   const [draftOptions, setDraftOptions] = useState<Record<string, WorkbenchDraftOptions>>({});
   const [followUp, setFollowUp] = useState<WorkbenchFollowUpState | null>(null);
   const [activeTaskMeta, setActiveTaskMeta] = useState<{ taskId: string; capabilityCode: string; capabilityName: string } | null>(null);
+  const [editingConversation, setEditingConversation] = useState<WorkbenchConversationSummary | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const notifiedTaskRef = useRef<string | null>(null);
 
   const capabilityQuery = useQuery({
@@ -90,16 +126,19 @@ export const WorkbenchPage = () => {
     staleTime: 60_000,
   });
 
-  const serviceQuery = useQuery({
-    queryKey: ['workbench', 'services'],
-    queryFn: fetchServiceDictionary,
-    staleTime: 60_000,
+  const conversationQuery = useQuery({
+    queryKey: ['workbench', 'conversations', conversationScope, conversationKeyword],
+    queryFn: () => fetchWorkbenchConversations(conversationScope, conversationKeyword || undefined),
+    staleTime: 5_000,
   });
 
+  const isArchivedScope = conversationScope === 'archived';
+  const resolvedConversationId = conversationId ?? (!draftConversationMode ? conversationQuery.data?.[0]?.conversationId : undefined);
+
   const messagesQuery = useQuery({
-    queryKey: ['workbench', 'messages', conversationId],
-    queryFn: () => fetchWorkbenchConversationMessages(conversationId!),
-    enabled: Boolean(conversationId),
+    queryKey: ['workbench', 'messages', resolvedConversationId],
+    queryFn: () => fetchWorkbenchConversationMessages(resolvedConversationId!),
+    enabled: Boolean(resolvedConversationId),
     staleTime: 0,
   });
 
@@ -121,42 +160,99 @@ export const WorkbenchPage = () => {
     mutationFn: submitWorkbenchChat,
   });
 
+  const renameConversationMutation = useMutation({
+    mutationFn: ({ conversationId: nextConversationId, title }: { conversationId: string; title: string }) =>
+      updateWorkbenchConversation(nextConversationId, { title }),
+  });
+
+  const archiveConversationMutation = useMutation({
+    mutationFn: (nextConversationId: string) => archiveWorkbenchConversation(nextConversationId),
+  });
+
+  const restoreConversationMutation = useMutation({
+    mutationFn: (nextConversationId: string) => restoreWorkbenchConversation(nextConversationId),
+  });
+
   const capabilities = useMemo<WorkbenchFunction[]>(() => {
     const records = capabilityQuery.data?.length ? capabilityQuery.data : fallbackWorkbenchFunctions;
-    return [...records].sort((left, right) => left.sortOrder - right.sortOrder);
+    return [...records]
+      .filter((item) => workbenchCapabilityOrder.includes(item.functionCode))
+      .map((item) => ({
+        ...item,
+        functionName: workbenchCapabilityNameMap[item.functionCode] ?? item.functionName,
+      }))
+      .sort((left, right) => workbenchCapabilityOrder.indexOf(left.functionCode) - workbenchCapabilityOrder.indexOf(right.functionCode));
   }, [capabilityQuery.data]);
 
-  useEffect(() => {
-    if (capabilities.length > 0 && !capabilities.some((item) => item.functionCode === selectedCapability)) {
-      setSelectedCapability(capabilities[0].functionCode);
+  const activateConversation = (nextConversationId?: string) => {
+    setConversationId(nextConversationId);
+    setDraftConversationMode(!nextConversationId);
+    setFollowUp(null);
+    setActiveTaskMeta(null);
+    setEditingConversation(null);
+    notifiedTaskRef.current = null;
+
+    if (!nextConversationId) {
+      return;
     }
-  }, [capabilities, selectedCapability]);
+
+    const matchedConversation = conversationQuery.data?.find((item) => item.conversationId === nextConversationId);
+    if (
+      matchedConversation?.lastCapabilityCode &&
+      capabilities.some((item) => item.functionCode === matchedConversation.lastCapabilityCode)
+    ) {
+      setSelectedCapability(matchedConversation.lastCapabilityCode);
+    }
+  };
+
+  const handleScopeChange = (nextScope: ConversationScope) => {
+    setConversationScope(nextScope);
+    setConversationId(undefined);
+    setDraftConversationMode(false);
+    setFollowUp(null);
+    setActiveTaskMeta(null);
+    setEditingConversation(null);
+    notifiedTaskRef.current = null;
+  };
+
+  const resolvedCapabilityCode =
+    capabilities.length > 0 && capabilities.some((item) => item.functionCode === selectedCapability)
+      ? selectedCapability
+      : capabilities[0]?.functionCode ?? 'image_generation';
 
   const currentCapability = useMemo(
-    () => capabilities.find((item) => item.functionCode === selectedCapability) ?? capabilities[0],
-    [capabilities, selectedCapability],
+    () => capabilities.find((item) => item.functionCode === resolvedCapabilityCode) ?? capabilities[0],
+    [capabilities, resolvedCapabilityCode],
   );
 
-  const modelOptions = useMemo(() => {
-    if (!currentCapability) {
-      return [];
+  const currentDraftText = draftTexts[resolvedCapabilityCode] ?? '';
+  const currentDraftOptions = draftOptions[resolvedCapabilityCode] ?? {};
+  const selectedServiceCode = currentDraftOptions.model ?? currentCapability?.defaultServiceCode ?? undefined;
+
+  const composerSchemaQuery = useQuery({
+    queryKey: ['workbench', 'composer-schema', currentCapability?.functionCode, selectedServiceCode],
+    queryFn: () => fetchWorkbenchComposerSchema(currentCapability!.functionCode, selectedServiceCode),
+    enabled: Boolean(currentCapability?.functionCode),
+    staleTime: 60_000,
+  });
+
+  const blueprint = useMemo(() => {
+    const fallbackBlueprint = getWorkbenchBlueprint(currentCapability?.functionCode ?? 'image_generation', []);
+    const schema: WorkbenchComposerSchema | undefined = composerSchemaQuery.data;
+    if (!schema) {
+      return fallbackBlueprint;
     }
-
-    return (serviceQuery.data ?? [])
-      .filter((item) => item.functionCode === currentCapability.functionCode && item.enabled)
-      .map((item) => ({
-        label: `${item.serviceName} / ${item.serviceCode}`,
-        value: item.serviceCode,
-      }));
-  }, [currentCapability, serviceQuery.data]);
-
-  const blueprint = useMemo(
-    () => getWorkbenchBlueprint(currentCapability?.functionCode ?? 'image_generation', modelOptions),
-    [currentCapability?.functionCode, modelOptions],
-  );
-
-  const currentDraftText = draftTexts[selectedCapability] ?? '';
-  const currentDraftOptions = draftOptions[selectedCapability] ?? {};
+    return {
+      placeholder: schema.placeholder,
+      helper: schema.helper,
+      fields: schema.fields.map((field) => ({
+        key: field.key,
+        label: field.label,
+        placeholder: field.placeholder,
+        options: field.options,
+      })),
+    };
+  }, [composerSchemaQuery.data, currentCapability?.functionCode]);
 
   useEffect(() => {
     const status = taskQuery.data?.status;
@@ -166,7 +262,7 @@ export const WorkbenchPage = () => {
     }
 
     notifiedTaskRef.current = taskId;
-    void queryClient.invalidateQueries({ queryKey: ['workbench', 'messages', conversationId] });
+    void queryClient.invalidateQueries({ queryKey: ['workbench', 'messages', resolvedConversationId] });
 
     if (status === 'SUCCESS') {
       void message.success('任务已完成，结果已从后端消息流回灌。');
@@ -175,7 +271,7 @@ export const WorkbenchPage = () => {
     }
 
     void message.error('任务执行失败，请检查参数后重试。');
-  }, [conversationId, queryClient, taskQuery.data?.status, taskQuery.data?.taskId]);
+  }, [queryClient, resolvedConversationId, taskQuery.data?.status, taskQuery.data?.taskId]);
 
   const activeTaskCard = useMemo<WorkbenchTaskCardData | null>(() => {
     if (!activeTaskMeta) {
@@ -199,9 +295,11 @@ export const WorkbenchPage = () => {
     };
   }, [activeTaskMeta, taskQuery.data?.status]);
 
+  const activeTaskId = activeTaskMeta?.taskId;
+
   const displayMessages = useMemo<WorkbenchMessageItem[]>(() => {
     const records = (messagesQuery.data ?? []).flatMap<WorkbenchMessageItem>((item) => {
-      if (activeTaskMeta?.taskId && item.contentType === 'status' && item.relatedTaskId === activeTaskMeta.taskId) {
+      if (activeTaskId && item.contentType === 'status' && item.relatedTaskId === activeTaskId) {
         return [];
       }
 
@@ -223,7 +321,7 @@ export const WorkbenchPage = () => {
           id: item.messageId,
           role: item.messageType === 'user' ? 'user' : item.messageType === 'assistant' ? 'assistant' : 'system',
           type: 'text',
-          text: item.contentText ?? '',
+          text: safeWorkbenchText(item.contentText, item.messageType === 'user' ? '用户消息暂不可读。' : '消息内容暂不可读。'),
           createdAt: item.createdAt,
         },
       ];
@@ -241,27 +339,26 @@ export const WorkbenchPage = () => {
     }
 
     return records;
-  }, [activeTaskCard, activeTaskMeta?.taskId, messagesQuery.data]);
-
-  const sidebarState: WorkbenchShellSidebarState = {
-    currentCapability,
-    draftText: currentDraftText,
-    queuedTasks: activeTaskCard && activeTaskCard.status !== 'succeeded' ? 1 : 0,
-    messageCount: displayMessages.length,
-  };
+  }, [activeTaskCard, activeTaskId, messagesQuery.data]);
 
   const handleSend = async () => {
     const prompt = currentDraftText.trim();
+    if (isArchivedScope) {
+      void message.warning('请先恢复会话或切回进行中列表后再发送新消息。');
+      return;
+    }
+
     if (!prompt || !currentCapability || submitChatMutation.isPending || createConversationMutation.isPending) {
       return;
     }
 
     try {
-      let nextConversationId = conversationId;
+      let nextConversationId = resolvedConversationId;
       if (!nextConversationId) {
         const created = await createConversationMutation.mutateAsync(`${currentCapability.functionName} 会话`);
         nextConversationId = created.conversationId;
         setConversationId(nextConversationId);
+        setDraftConversationMode(false);
       }
 
       const envelope = await submitChatMutation.mutateAsync({
@@ -269,11 +366,20 @@ export const WorkbenchPage = () => {
         selectionMode: 'manual',
         capability: currentCapability.functionCode,
         inputText: prompt,
+        serviceCode: currentDraftOptions.model,
         model: currentDraftOptions.model,
         options: JSON.stringify(currentDraftOptions),
+        composerOptions: JSON.stringify(currentDraftOptions),
+        schemaVersion: 'composer_schema_v1',
+        templateCode: currentDraftOptions.template,
+        attachments: currentDraftOptions.referenceImageFileId
+          ? JSON.stringify([{ fileId: currentDraftOptions.referenceImageFileId, role: 'referenceImage' }])
+          : undefined,
         inheritanceMode: followUp ? 'same_capability' : 'none',
         parentTaskId: followUp?.taskId,
-        sourceAssetIds: '[]',
+        sourceAssetIds: currentDraftOptions.referenceImageFileId
+          ? JSON.stringify([currentDraftOptions.referenceImageFileId])
+          : '[]',
       });
 
       setActiveTaskMeta({
@@ -282,9 +388,78 @@ export const WorkbenchPage = () => {
         capabilityName: currentCapability.functionName,
       });
       notifiedTaskRef.current = null;
-      setDraftTexts((previous) => ({ ...previous, [selectedCapability]: '' }));
+      setDraftTexts((previous) => ({ ...previous, [resolvedCapabilityCode]: '' }));
       setFollowUp(null);
+      await queryClient.invalidateQueries({ queryKey: ['workbench', 'conversations'] });
       await queryClient.invalidateQueries({ queryKey: ['workbench', 'messages', nextConversationId] });
+    } catch {
+      // http.ts 已统一提示错误，这里不重复弹出。
+    }
+  };
+
+  const openRenameDialog = (conversation: WorkbenchConversationSummary) => {
+    setEditingConversation(conversation);
+    setEditingTitle(conversation.title);
+  };
+
+  const handleRenameConversation = async () => {
+    if (!editingConversation) {
+      return;
+    }
+
+    const nextTitle = editingTitle.trim();
+    if (!nextTitle) {
+      void message.warning('会话标题不能为空。');
+      return;
+    }
+
+    try {
+      await renameConversationMutation.mutateAsync({
+        conversationId: editingConversation.conversationId,
+        title: nextTitle,
+      });
+      await queryClient.invalidateQueries({ queryKey: ['workbench', 'conversations'] });
+      setEditingConversation(null);
+      void message.success('会话标题已更新。');
+    } catch {
+      // http.ts 已统一提示错误，这里不重复弹出。
+    }
+  };
+
+  const handleArchiveConversation = async (conversation: WorkbenchConversationSummary) => {
+    const confirmed = window.confirm(`确认归档会话“${conversation.title}”吗？归档后会从当前列表移除。`);
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await archiveConversationMutation.mutateAsync(conversation.conversationId);
+      if (resolvedConversationId === conversation.conversationId) {
+        setConversationId(undefined);
+        setDraftConversationMode(false);
+        setFollowUp(null);
+        setActiveTaskMeta(null);
+        notifiedTaskRef.current = null;
+      }
+      await queryClient.invalidateQueries({ queryKey: ['workbench', 'conversations'] });
+      void message.success('会话已归档。');
+    } catch {
+      // http.ts 已统一提示错误，这里不重复弹出。
+    }
+  };
+
+  const handleRestoreConversation = async (conversation: WorkbenchConversationSummary) => {
+    try {
+      await restoreConversationMutation.mutateAsync(conversation.conversationId);
+      setConversationScope('active');
+      setConversationId(conversation.conversationId);
+      setDraftConversationMode(false);
+      setFollowUp(null);
+      setActiveTaskMeta(null);
+      notifiedTaskRef.current = null;
+      await queryClient.invalidateQueries({ queryKey: ['workbench', 'conversations'] });
+      await queryClient.invalidateQueries({ queryKey: ['workbench', 'messages', conversation.conversationId] });
+      void message.success('会话已恢复到进行中列表。');
     } catch {
       // http.ts 已统一提示错误，这里不重复弹出。
     }
@@ -292,34 +467,40 @@ export const WorkbenchPage = () => {
 
   const sidebar = (
     <div className="workbench-sidebar">
-      <Card className="surface-card workbench-sidebar__panel">
-        <Tag color="cyan">Step 4</Tag>
-        <h3>工作台基础壳子</h3>
-        <p>当前已切到真实会话、消息、任务接口，文生图结果会直接以图片卡和文件资产的形式回灌到工作台。</p>
-      </Card>
-      <Card className="surface-card workbench-sidebar__panel">
-        <strong>当前能力</strong>
-        <h4>{sidebarState.currentCapability?.functionName ?? '未选择能力'}</h4>
-        <p>{sidebarState.currentCapability?.description ?? '先选择一个能力，观察参数区和消息流如何联动。'}</p>
-        <div className="workbench-sidebar__meta">
-          <span>会话 ID：{conversationId ?? '未创建'}</span>
-          <span>消息条数：{sidebarState.messageCount}</span>
-          <span>待完成任务：{sidebarState.queuedTasks}</span>
-        </div>
-      </Card>
-      <Card className="surface-card workbench-sidebar__panel">
-        <strong>第 5 步衔接</strong>
-        <ul className="workbench-sidebar__list">
-          <li>文生图已优先接入真实执行链路。</li>
-          <li>下一步把图像识别、语音、PPT、视频能力迁移到同一套执行器。</li>
-          <li>再补会话历史、文件管理和调用记录中心。</li>
-        </ul>
-      </Card>
+      <ConversationHistory
+        conversations={conversationQuery.data ?? []}
+        capabilities={capabilities}
+        activeConversationId={resolvedConversationId}
+        draftMode={draftConversationMode}
+        loading={conversationQuery.isLoading}
+        scope={conversationScope}
+        keyword={conversationKeyword}
+        renamingConversationId={
+          renameConversationMutation.isPending ? renameConversationMutation.variables?.conversationId : undefined
+        }
+        archivingConversationId={
+          archiveConversationMutation.isPending ? archiveConversationMutation.variables : undefined
+        }
+        restoringConversationId={
+          restoreConversationMutation.isPending ? restoreConversationMutation.variables : undefined
+        }
+        searchLoading={conversationQuery.isFetching && !conversationQuery.isLoading}
+        onScopeChange={handleScopeChange}
+        onKeywordChange={setConversationKeyword}
+        onCreateConversation={() => {
+          setConversationScope('active');
+          activateConversation(undefined);
+        }}
+        onSelectConversation={activateConversation}
+        onRenameConversation={openRenameDialog}
+        onArchiveConversation={handleArchiveConversation}
+        onRestoreConversation={handleRestoreConversation}
+      />
     </div>
   );
 
   return (
-    <div className="page-stack">
+    <div className="workbench-page">
       <WorkbenchShell sidebar={sidebar}>
         <MessageStream
           messages={displayMessages}
@@ -337,35 +518,88 @@ export const WorkbenchPage = () => {
             });
           }}
         />
-        <Composer
-          capabilities={capabilities}
-          selectedCapability={selectedCapability}
-          blueprint={blueprint}
-          draftText={currentDraftText}
-          options={currentDraftOptions}
-          followUp={followUp}
-          sending={submitChatMutation.isPending || createConversationMutation.isPending}
-          onSelectCapability={setSelectedCapability}
-          onDraftTextChange={(value) => setDraftTexts((previous) => ({ ...previous, [selectedCapability]: value }))}
-          onOptionChange={(key, value) =>
-            setDraftOptions((previous) => ({
-              ...previous,
-              [selectedCapability]: {
-                ...(previous[selectedCapability] ?? {}),
-                [key]: value,
-              },
-            }))
+        {isArchivedScope ? (
+          <Card className="surface-card composer-panel">
+            <Alert
+              type="info"
+              showIcon
+              message="当前正在查看已归档会话"
+              description="归档会话默认只读。你可以先恢复该会话，或切回进行中列表后继续发送新消息。"
+            />
+          </Card>
+        ) : (
+          <Composer
+            capabilities={capabilities}
+            selectedCapability={resolvedCapabilityCode}
+            blueprint={blueprint}
+            draftText={currentDraftText}
+            options={currentDraftOptions}
+            followUp={followUp}
+            sending={submitChatMutation.isPending || createConversationMutation.isPending}
+            onSelectCapability={setSelectedCapability}
+            onDraftTextChange={(value) => setDraftTexts((previous) => ({ ...previous, [resolvedCapabilityCode]: value }))}
+            onOptionChange={(key, value) =>
+              setDraftOptions((previous) => ({
+                ...previous,
+                [resolvedCapabilityCode]: {
+                  ...(previous[resolvedCapabilityCode] ?? {}),
+                  [key]: value,
+                },
+              }))
+            }
+            onUploadReference={async (file) => {
+              try {
+                const uploaded = await uploadWorkbenchFile(file);
+                setDraftOptions((previous) => ({
+                  ...previous,
+                  [resolvedCapabilityCode]: {
+                    ...(previous[resolvedCapabilityCode] ?? {}),
+                    referenceImage: uploaded.fileName,
+                    referenceImageFileId: uploaded.fileId,
+                  },
+                }));
+                void message.success('参考图已上传。');
+              } catch {
+                // http.ts 已统一提示错误，这里不重复弹出。
+              }
+            }}
+            onClearDraft={() => {
+              setDraftTexts((previous) => ({ ...previous, [resolvedCapabilityCode]: '' }));
+              setDraftOptions((previous) => ({ ...previous, [resolvedCapabilityCode]: {} }));
+            }}
+            onClearFollowUp={() => setFollowUp(null)}
+            onSend={() => {
+              void handleSend();
+            }}
+          />
+        )}
+      </WorkbenchShell>
+      <Modal
+        title="重命名会话"
+        open={Boolean(editingConversation)}
+        okText="保存"
+        cancelText="取消"
+        confirmLoading={renameConversationMutation.isPending}
+        onOk={() => {
+          void handleRenameConversation();
+        }}
+        onCancel={() => {
+          if (renameConversationMutation.isPending) {
+            return;
           }
-          onClearDraft={() => {
-            setDraftTexts((previous) => ({ ...previous, [selectedCapability]: '' }));
-            setDraftOptions((previous) => ({ ...previous, [selectedCapability]: {} }));
-          }}
-          onClearFollowUp={() => setFollowUp(null)}
-          onSend={() => {
-            void handleSend();
+          setEditingConversation(null);
+        }}
+      >
+        <Input
+          maxLength={255}
+          value={editingTitle}
+          placeholder="请输入会话标题"
+          onChange={(event) => setEditingTitle(event.target.value)}
+          onPressEnter={() => {
+            void handleRenameConversation();
           }}
         />
-      </WorkbenchShell>
+      </Modal>
     </div>
   );
 };

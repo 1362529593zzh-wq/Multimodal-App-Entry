@@ -3,7 +3,10 @@ import type { WorkbenchFunction } from '../../types/api';
 export type WorkbenchTaskStatus = 'queued' | 'running' | 'succeeded' | 'failed';
 
 export interface WorkbenchDraftOptions {
+  [key: string]: string | undefined;
   model?: string;
+  referenceImage?: string;
+  referenceImageFileId?: string;
   ratio?: string;
   style?: string;
   template?: string;
@@ -20,7 +23,7 @@ export interface WorkbenchFieldOption {
 }
 
 export interface WorkbenchFieldDefinition {
-  key: keyof WorkbenchDraftOptions;
+  key: string;
   label: string;
   placeholder: string;
   options: WorkbenchFieldOption[];
@@ -45,10 +48,13 @@ export interface WorkbenchResultData {
   summary: string;
   chips: string[];
   actionLabel: string;
-  kind?: 'image' | 'generic';
+  kind?: 'image' | 'audio' | 'video' | 'file' | 'generic';
   previewImageUrl?: string;
+  previewVideoUrl?: string;
   downloadUrl?: string;
   fileId?: string;
+  fileName?: string;
+  mimeType?: string;
 }
 
 export interface WorkbenchMessageItem {

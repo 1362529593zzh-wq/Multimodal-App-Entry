@@ -7,6 +7,9 @@ interface ResultCardProps {
   onFollowUp: () => void;
 }
 
+const downloadLabel = '\u4e0b\u8f7d\u7ed3\u679c';
+const followUpLabel = '\u57fa\u4e8e\u7ed3\u679c\u7ee7\u7eed';
+
 export const ResultCard = ({ result, onFollowUp }: ResultCardProps) => (
   <Card className="message-card message-card--result">
     <Space className="message-card__header" align="center">
@@ -21,6 +24,23 @@ export const ResultCard = ({ result, onFollowUp }: ResultCardProps) => (
         <img className="result-card__preview" src={result.previewImageUrl} alt={result.title} />
       </div>
     ) : null}
+    {result.kind === 'audio' && result.downloadUrl ? (
+      <audio className="result-card__audio" controls src={result.downloadUrl}>
+        {downloadLabel}
+      </audio>
+    ) : null}
+    {result.kind === 'video' && (result.previewVideoUrl || result.downloadUrl) ? (
+      <video
+        className="result-card__video"
+        controls
+        playsInline
+        preload="metadata"
+        src={result.previewVideoUrl ?? result.downloadUrl}
+      >
+        {downloadLabel}
+      </video>
+    ) : null}
+    {result.fileName ? <div className="result-card__filename">{result.fileName}</div> : null}
     <div className="result-card__chips">
       {result.chips.map((chip) => (
         <Tag key={chip}>{chip}</Tag>
@@ -29,11 +49,11 @@ export const ResultCard = ({ result, onFollowUp }: ResultCardProps) => (
     <Space wrap className="result-card__actions">
       {result.downloadUrl ? (
         <Button href={result.downloadUrl} target="_blank">
-          下载结果
+          {downloadLabel}
         </Button>
       ) : null}
       <Button type="primary" ghost icon={<ArrowRightOutlined />} onClick={onFollowUp}>
-        {result.actionLabel}
+        {followUpLabel}
       </Button>
     </Space>
   </Card>

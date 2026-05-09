@@ -9,6 +9,7 @@ import type {
   ModelService,
   ModelServicePayload,
   ModelServiceQuery,
+  ModelServiceVendor,
   PageResponse,
   ParamTemplate,
   ParamTemplatePayload,
@@ -31,14 +32,14 @@ export const createFunctionConfig = (payload: FunctionConfigPayload) =>
 
 export const updateFunctionConfig = (functionCode: string, payload: FunctionConfigPayload) =>
   requestEnvelope<FunctionConfig>({
-    url: `/api/config/functions/${functionCode}`,
+    url: `/api/config/functions/${encodeURIComponent(functionCode)}`,
     method: 'PUT',
     data: payload,
   });
 
 export const toggleFunctionConfig = (functionCode: string, enabled: boolean) =>
   requestEnvelope<null>({
-    url: `/api/config/functions/${functionCode}/enabled`,
+    url: `/api/config/functions/${encodeURIComponent(functionCode)}/enabled`,
     method: 'PATCH',
     params: { enabled },
   });
@@ -59,16 +60,34 @@ export const createModelService = (payload: ModelServicePayload) =>
 
 export const updateModelService = (serviceCode: string, payload: ModelServicePayload) =>
   requestEnvelope<ModelService>({
-    url: `/api/config/model-services/${serviceCode}`,
+    url: `/api/config/model-services/${encodeURIComponent(serviceCode)}`,
     method: 'PUT',
     data: payload,
   });
 
 export const toggleModelService = (serviceCode: string, enabled: boolean) =>
   requestEnvelope<null>({
-    url: `/api/config/model-services/${serviceCode}/enabled`,
+    url: `/api/config/model-services/${encodeURIComponent(serviceCode)}/enabled`,
     method: 'PATCH',
     params: { enabled },
+  });
+
+export const deleteModelService = (serviceCode: string) =>
+  requestEnvelope<null>({
+    url: `/api/config/model-services/${encodeURIComponent(serviceCode)}`,
+    method: 'DELETE',
+  });
+
+export const fetchModelServiceVendors = () =>
+  requestData<ModelServiceVendor[]>({
+    url: '/api/config/model-services/vendors',
+    method: 'GET',
+  });
+
+export const testModelService = (serviceCode: string) =>
+  requestEnvelope<Record<string, unknown>>({
+    url: `/api/config/model-services/${encodeURIComponent(serviceCode)}/test`,
+    method: 'POST',
   });
 
 export const fetchFunctionModelBindings = (params: FunctionModelBindingQuery) =>
@@ -91,14 +110,14 @@ export const updateFunctionModelBinding = (
   payload: FunctionModelBindingPayload,
 ) =>
   requestEnvelope<FunctionModelBinding>({
-    url: `/api/config/function-model-bindings/${functionCode}/${serviceCode}`,
+    url: `/api/config/function-model-bindings/${encodeURIComponent(functionCode)}/${encodeURIComponent(serviceCode)}`,
     method: 'PUT',
     data: payload,
   });
 
 export const toggleFunctionModelBinding = (functionCode: string, serviceCode: string, enabled: boolean) =>
   requestEnvelope<null>({
-    url: `/api/config/function-model-bindings/${functionCode}/${serviceCode}/enabled`,
+    url: `/api/config/function-model-bindings/${encodeURIComponent(functionCode)}/${encodeURIComponent(serviceCode)}/enabled`,
     method: 'PATCH',
     params: { enabled },
   });
@@ -119,14 +138,14 @@ export const createParamTemplate = (payload: ParamTemplatePayload) =>
 
 export const updateParamTemplate = (templateCode: string, payload: ParamTemplatePayload) =>
   requestEnvelope<ParamTemplate>({
-    url: `/api/config/param-templates/${templateCode}`,
+    url: `/api/config/param-templates/${encodeURIComponent(templateCode)}`,
     method: 'PUT',
     data: payload,
   });
 
 export const toggleParamTemplate = (templateCode: string, enabled: boolean) =>
   requestEnvelope<null>({
-    url: `/api/config/param-templates/${templateCode}/enabled`,
+    url: `/api/config/param-templates/${encodeURIComponent(templateCode)}/enabled`,
     method: 'PATCH',
     params: { enabled },
   });

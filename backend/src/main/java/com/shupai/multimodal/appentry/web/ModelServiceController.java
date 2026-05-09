@@ -5,8 +5,12 @@ import com.shupai.multimodal.appentry.model.dto.ModelServiceCreateRequest;
 import com.shupai.multimodal.appentry.model.dto.ModelServiceQuery;
 import com.shupai.multimodal.appentry.model.dto.ModelServiceUpdateRequest;
 import com.shupai.multimodal.appentry.model.vo.ModelServiceVO;
+import com.shupai.multimodal.appentry.model.vo.ModelServiceVendorVO;
 import com.shupai.multimodal.appentry.service.ModelServiceService;
 import jakarta.validation.Valid;
+import java.util.List;
+import java.util.Map;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,9 +35,26 @@ public class ModelServiceController {
             @RequestParam(defaultValue = "10") Long pageSize,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String functionCode,
+            @RequestParam(required = false) String vendorCode,
+            @RequestParam(required = false) String providerType,
+            @RequestParam(required = false) String modelType,
             @RequestParam(required = false) Boolean enabled
     ) {
-        return modelServiceService.page(new ModelServiceQuery(pageNum, pageSize, keyword, functionCode, enabled));
+        return modelServiceService.page(new ModelServiceQuery(
+                pageNum,
+                pageSize,
+                keyword,
+                functionCode,
+                vendorCode,
+                providerType,
+                modelType,
+                enabled
+        ));
+    }
+
+    @GetMapping("/vendors")
+    public List<ModelServiceVendorVO> vendors() {
+        return modelServiceService.listVendors();
     }
 
     @GetMapping("/{serviceCode}")
@@ -60,5 +81,15 @@ public class ModelServiceController {
             @RequestParam boolean enabled
     ) {
         modelServiceService.updateEnabled(serviceCode, enabled);
+    }
+
+    @DeleteMapping("/{serviceCode}")
+    public void delete(@PathVariable String serviceCode) {
+        modelServiceService.delete(serviceCode);
+    }
+
+    @PostMapping("/{serviceCode}/test")
+    public Map<String, Object> testConnection(@PathVariable String serviceCode) {
+        return modelServiceService.testConnection(serviceCode);
     }
 }

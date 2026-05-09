@@ -1,5 +1,5 @@
-﻿import { CompassOutlined, RocketOutlined } from '@ant-design/icons';
-import { Button, Empty, Space, Tag } from 'antd';
+import { CompassOutlined } from '@ant-design/icons';
+import { Button } from 'antd';
 import type { WorkbenchFunction } from '../../types/api';
 
 interface EmptyConversationProps {
@@ -7,27 +7,35 @@ interface EmptyConversationProps {
   onSelect: (capabilityCode: string) => void;
 }
 
+const suggestions = ['生成一张产品海报', '识别图片中的内容', '整理一份 PPT'];
+
 export const EmptyConversation = ({ capabilities, onSelect }: EmptyConversationProps) => (
   <div className="empty-conversation">
-    <Empty
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-      description="工作台骨架已经就绪。先从一个能力开始，验证功能条、参数区和消息流的基础体验。"
-    />
-    <Space wrap>
-      {capabilities.slice(0, 4).map((capability) => (
+    <div className="empty-conversation__copy">
+      <h1>从一个任务开始</h1>
+      <p>选择下方能力或直接输入需求，工作台会根据内容匹配模型与参数。</p>
+      <div className="empty-conversation__suggestions">
+        {suggestions.map((item) => (
+          <span key={item}>试试：{item}</span>
+        ))}
+      </div>
+    </div>
+    <div className="empty-conversation__bubbles">
+      <div className="empty-conversation__bubble empty-conversation__bubble--user">
+        <strong>你的输入</strong>
+        <span>帮我生成一张适合公众号首图的科技海报。</span>
+      </div>
+      <div className="empty-conversation__bubble empty-conversation__bubble--ai">
+        <strong>系统响应</strong>
+        <span>已匹配图像生成能力，可继续调整尺寸、风格和模型服务。</span>
+      </div>
+    </div>
+    <div className="empty-conversation__capabilities">
+      {capabilities.slice(0, 5).map((capability) => (
         <Button key={capability.functionCode} icon={<CompassOutlined />} onClick={() => onSelect(capability.functionCode)}>
           {capability.functionName}
         </Button>
       ))}
-      <Button type="primary" ghost icon={<RocketOutlined />} onClick={() => onSelect('image_generation')}>
-        从文生图开始
-      </Button>
-    </Space>
-    <div className="empty-conversation__tags">
-      <Tag color="cyan">Step 4</Tag>
-      <Tag>消息流</Tag>
-      <Tag>功能条</Tag>
-      <Tag>参数快捷区</Tag>
     </div>
   </div>
 );

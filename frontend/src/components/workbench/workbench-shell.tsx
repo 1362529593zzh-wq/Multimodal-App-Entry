@@ -7,6 +7,6 @@ interface WorkbenchShellProps extends PropsWithChildren {
 export const WorkbenchShell = ({ sidebar, children }: WorkbenchShellProps) => (
   <section className="workbench-shell">
     <aside className="workbench-shell__sidebar">{sidebar}</aside>
-    <div className="workbench-shell__main">{children}</div>
+    <main className="workbench-shell__main">{children}</main>
   </section>
 );

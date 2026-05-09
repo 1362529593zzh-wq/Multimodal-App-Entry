@@ -5,6 +5,9 @@ public record ModelServiceQuery(
         Long pageSize,
         String keyword,
         String functionCode,
+        String vendorCode,
+        String providerType,
+        String modelType,
         Boolean enabled
 ) {
 }

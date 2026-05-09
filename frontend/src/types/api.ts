@@ -37,14 +37,26 @@ export interface ModelService {
   modelName: string;
   modelType: string;
   functionCode: string;
+  vendorCode: string;
+  vendorName: string;
+  vendorType: string;
+  providerType: string;
   endpoint: string | null;
   authType: string | null;
+  secretRef: string | null;
+  apiKeyMasked: string | null;
+  secretKeyMasked: string | null;
+  requestMethod: string;
+  headerTemplate: string;
+  payloadTemplate: string;
+  extraConfig: string;
   timeoutMs: number;
   enabled: boolean;
   publishStatus: string;
   isDefault: boolean;
   allowFrontSelect: boolean;
   supportedOptions: string;
+  sortOrder: number;
   remark: string | null;
   createdAt: string;
   updatedAt: string;
@@ -79,6 +91,39 @@ export interface ParamTemplate {
   updatedAt: string;
 }
 
+export interface CallRecord {
+  id: number;
+  recordId: string;
+  taskId: string;
+  conversationId: string | null;
+  messageId: string | null;
+  parentTaskId: string | null;
+  sourceAssetIds: string;
+  functionCode: string;
+  functionName: string | null;
+  selectionMode: string;
+  resolvedIntent: string | null;
+  serviceCode: string;
+  serviceName: string | null;
+  modelName: string | null;
+  requestSummary: string | null;
+  inputText: string | null;
+  requestParams: string;
+  inputAssets: string;
+  status: string;
+  resultType: string | null;
+  resultSummary: string;
+  errorMessage: string | null;
+  downloadCount: number;
+  recordStatus: string;
+  remark: string | null;
+  tags: string;
+  createdAt: string;
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+}
+
 export interface FunctionConfigQuery {
   pageNum: number;
   pageSize: number;
@@ -91,6 +136,9 @@ export interface ModelServiceQuery {
   pageSize: number;
   keyword?: string;
   functionCode?: string;
+  vendorCode?: string;
+  providerType?: string;
+  modelType?: string;
   enabled?: boolean;
 }
 
@@ -109,6 +157,18 @@ export interface ParamTemplateQuery {
   serviceCode?: string;
   templateType?: string;
   enabled?: boolean;
+}
+
+export interface CallRecordQuery {
+  pageNum: number;
+  pageSize: number;
+  keyword?: string;
+  functionCode?: string;
+  serviceCode?: string;
+  status?: string;
+  resultType?: string;
+  startedFrom?: string;
+  startedTo?: string;
 }
 
 export interface FunctionConfigPayload {
@@ -132,15 +192,36 @@ export interface ModelServicePayload {
   modelName: string;
   modelType: string;
   functionCode: string;
+  vendorCode?: string;
+  vendorName?: string;
+  vendorType?: string;
+  providerType?: string;
   endpoint?: string;
   authType?: string;
+  secretRef?: string;
+  apiKey?: string;
+  secretKey?: string;
+  requestMethod?: string;
+  headerTemplate?: string;
+  payloadTemplate?: string;
+  extraConfig?: string;
   timeoutMs?: number;
   enabled?: boolean;
   publishStatus?: string;
   isDefault?: boolean;
   allowFrontSelect?: boolean;
   supportedOptions?: string;
+  sortOrder?: number;
   remark?: string;
+}
+
+export interface ModelServiceVendor {
+  vendorCode: string;
+  vendorName: string;
+  vendorType: string;
+  total: number;
+  enabledCount: number;
+  sortOrder: number;
 }
 
 export interface FunctionModelBindingPayload {
@@ -186,6 +267,26 @@ export interface WorkbenchFunction {
   description: string | null;
 }
 
+export interface WorkbenchComposerOption {
+  label: string;
+  value: string;
+}
+
+export interface WorkbenchComposerField {
+  key: string;
+  label: string;
+  placeholder: string;
+  options: WorkbenchComposerOption[];
+}
+
+export interface WorkbenchComposerSchema {
+  capabilityCode: string;
+  placeholder: string;
+  helper: string;
+  supportsUpload: boolean;
+  fields: WorkbenchComposerField[];
+}
+
 export interface WorkbenchConversation {
   id: number;
   conversationId: string;
@@ -193,6 +294,25 @@ export interface WorkbenchConversation {
   lastCapabilityCode: string | null;
   lastServiceCode: string | null;
   status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkbenchConversationPayload {
+  title: string;
+}
+
+export interface WorkbenchConversationSummary {
+  id: number;
+  conversationId: string;
+  title: string;
+  lastCapabilityCode: string | null;
+  lastServiceCode: string | null;
+  status: string;
+  latestMessagePreview: string | null;
+  latestMessageType: string | null;
+  latestMessageAt: string | null;
+  messageCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -240,20 +360,35 @@ export interface WorkbenchChatPayload {
   selectionMode?: string;
   capability?: string;
   inputText: string;
+  serviceCode?: string;
   model?: string;
   options?: string;
+  composerOptions?: string;
+  schemaVersion?: string;
+  templateCode?: string;
+  attachments?: string;
   inheritanceMode?: string;
   parentTaskId?: string;
   sourceAssetIds?: string;
 }
 
-export interface WorkbenchChatSubmitResult {
-  conversationId: string;
-  userMessageId: string;
+  export interface WorkbenchChatSubmitResult {
+    conversationId: string;
+    userMessageId: string;
   taskMessageId: string;
   taskId: string;
   resolvedCapability: string;
   resolvedServiceCode: string;
   resolvedModel: string | null;
-  status: string;
-}
+    status: string;
+  }
+
+  export interface WorkbenchUploadedFile {
+    fileId: string;
+    fileName: string;
+    fileType: string;
+    mimeType: string;
+    fileSize: number;
+    previewUrl?: string;
+    downloadUrl?: string;
+  }

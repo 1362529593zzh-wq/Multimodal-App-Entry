@@ -6,6 +6,7 @@ import {
   MenuOutlined,
   MessageOutlined,
   NodeIndexOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { Button, Drawer, Grid, Layout, Menu, Tag, theme } from 'antd';
 import type { MenuProps } from 'antd';
@@ -18,6 +19,11 @@ const menuItems: Required<MenuProps>['items'] = [
     key: '/workbench',
     icon: <MessageOutlined />,
     label: '工作台',
+  },
+  {
+    key: '/call-records',
+    icon: <ThunderboltOutlined />,
+    label: '调用记录',
   },
   {
     key: '/functions',
@@ -69,7 +75,7 @@ export const AppLayout = () => {
   return (
     <Layout className="app-shell">
       {screens.lg ? (
-        <Sider width={284} className="app-sider" theme="light">
+        <Sider width={264} className="app-sider" theme="light">
           <div className="brand-panel">
             <div className="brand-mark">MM</div>
             <div>
@@ -89,38 +95,11 @@ export const AppLayout = () => {
         </Sider>
       ) : null}
       <Layout>
-        <Header className="app-header" style={{ background: token.colorBgLayout }}>
-          <div className="hero-band">
-            <div className="hero-band__copy">
-              {!screens.lg ? (
-                <Button
-                  icon={<MenuOutlined />}
-                  shape="circle"
-                  className="hero-band__menu-trigger"
-                  onClick={() => setDrawerOpen(true)}
-                />
-              ) : null}
-              <div>
-                <span className="hero-band__eyebrow">{isWorkbench ? 'Shupai / Workbench' : 'Shupai / Control Deck'}</span>
-                <h1>{isWorkbench ? '多模态工作台基础壳子' : '多模态入口配置中心'}</h1>
-                <p>
-                  {isWorkbench
-                    ? '先完成左侧导航、消息流、输入区、功能条与参数快捷区，再把会话、消息和任务骨架接进来。'
-                    : '先把功能、模型、绑定与模板四条配置链路打透，再进入聊天工作台与任务主链路。'}
-                </p>
-              </div>
-            </div>
-            <div className="hero-band__signal">
-              <span>{isWorkbench ? 'Workbench' : 'Backend'}</span>
-              <strong>{isWorkbench ? 'Shell ready for step 5 preparation' : 'Ready for frontend integration'}</strong>
-              <small>
-                {isWorkbench
-                  ? '当前结果使用轻量 mock 演化，后续接入会话 / 消息 / 任务接口。'
-                  : '默认代理 `/api` -> `http://127.0.0.1:8080`'}
-              </small>
-            </div>
-          </div>
-        </Header>
+        {!screens.lg ? (
+          <Header className="app-header app-header--workbench" style={{ background: token.colorBgLayout }}>
+            <Button icon={<MenuOutlined />} shape="circle" onClick={() => setDrawerOpen(true)} />
+          </Header>
+        ) : null}
         <Content className="app-content">
           <Outlet />
         </Content>

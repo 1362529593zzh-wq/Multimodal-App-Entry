@@ -1,5 +1,6 @@
 ﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layouts/app-layout';
+import { CallRecordsPage } from './pages/call-records/page';
 import { FunctionConfigPage } from './pages/function-config/page';
 import { FunctionModelBindingPage } from './pages/function-model-binding/page';
 import { ModelServicePage } from './pages/model-service/page';
@@ -11,6 +12,7 @@ const App = () => (
     <Route element={<AppLayout />}>
       <Route path="/" element={<Navigate to="/workbench" replace />} />
       <Route path="/workbench" element={<WorkbenchPage />} />
+      <Route path="/call-records" element={<CallRecordsPage />} />
       <Route path="/functions" element={<FunctionConfigPage />} />
       <Route path="/model-services" element={<ModelServicePage />} />
       <Route path="/function-model-bindings" element={<FunctionModelBindingPage />} />
