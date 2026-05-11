@@ -1,0 +1,43 @@
+﻿{
+    "code":  0,
+    "message":  "success",
+    "data":  [
+                 {
+                     "id":  160,
+                     "messageId":  "msg_5a6098e869be",
+                     "conversationId":  "conv_d9c5af4f3551",
+                     "messageType":  "user",
+                     "contentType":  "text",
+                     "contentText":  "è¯·çæä¸ä»½å\u0085³äºAIå®¢æé¡¹ç®è§åç6é¡µPPTå¤§çº²",
+                     "relatedTaskId":  null,
+                     "relatedRecordId":  null,
+                     "sequenceNo":  1,
+                     "createdAt":  "2026-05-09T16:24:26.776484+08:00"
+                 },
+                 {
+                     "id":  161,
+                     "messageId":  "msg_149c7fd158c9",
+                     "conversationId":  "conv_d9c5af4f3551",
+                     "messageType":  "system",
+                     "contentType":  "status",
+                     "contentText":  "Task created and queued for execution.",
+                     "relatedTaskId":  "task_409ca3262c2c",
+                     "relatedRecordId":  "record_469c3651b4c0",
+                     "sequenceNo":  2,
+                     "createdAt":  "2026-05-09T16:24:26.776484+08:00"
+                 },
+                 {
+                     "id":  162,
+                     "messageId":  "msg_1d4a06a41ff4",
+                     "conversationId":  "conv_d9c5af4f3551",
+                     "messageType":  "assistant",
+                     "contentType":  "result",
+                     "contentText":  "{\"title\":\"PPT Outline Draft (Editable)\",\"summary\":\"Outline-first workflow is active. Review or edit this draft, then click Generate PPT to render the final PPTX.\",\"chips\":[\"service: openrouter-ppt\",\"model: OpenRouter PPT Outline\",\"style: business-report\"],\"actionLabel\":\"Generate PPT\",\"kind\":\"ppt_draft\",\"pptDraft\":{\"draftId\":\"task_409ca3262c2c\",\"title\":\"AIå®¢æé¡¹ç®è§å\",\"prompt\":\"è¯·çæä¸ä»½å\u0085³äºAIå®¢æé¡¹ç®è§åç6é¡µPPTå¤§çº²\",\"config\":{\"pages\":6,\"style\":\"business-report\",\"theme\":\"business\",\"template\":\"business\",\"ratio\":\"16:9\"},\"slides\":[{\"id\":\"slide_de325a5d6d96\",\"type\":\"section\",\"layout\":\"section-hero\",\"visualHint\":\"full-width image of AI technology\",\"title\":\"AIå®¢æé¡¹ç®æ¦è¿°\",\"subtitle\":\"å¼å\u0085¥æºè½å®¢æçèæ¯ä¸ç®ç\",\"takeaway\":\"æåå®¢æ·æå¡æçä¸æ»¡æåº¦æ¯AIå®¢æé¡¹ç®çæ ¸å¿ç®æ ã\",\"bullets\":[\"å®¢æ·æå¡éæ±æ¥çå¢é¿\",\"ä¼ ç»å®¢æé¢ä¸´äººåèµæºä¸è¶³çé®é¢\",\"AIææ¯åå±ä¸ºè§£å³æ¹æ¡æä¾äºå¯è½æ§\",\"é¡¹ç®æ¨å¨æåååºéåº¦ä¸æå¡è´¨é\"],\"speakerNotes\":\"ä»ç»AIå®¢æé¡¹ç®çèæ¯åç®æ ï¼å¼ºè°å®¢æ·æå¡çéè¦æ§ã\"},{\"id\":\"slide_4b619ef5f853\",\"type\":\"process\",\"layout\":\"step-flow\",\"visualHint\":\"flowchart diagram\",\"title\":\"é¡¹ç®å®æ½æµç¨\",\"subtitle\":\"AIå®¢æé¡¹ç®çå\u0085³é®æ­¥éª¤\",\"takeaway\":\"ç³»ç»åçå®æ½æµç¨ç¡®ä¿é¡¹ç®æåã\",\"bullets\":[\"éæ±åæä¸ç®æ è®¾å®\",\"ææ¯éåä¸å¹³å°æ­å»º\",\"ç³»ç»å¼åä¸æµè¯\",\"åå·¥å¹è®­ä¸ä¸çº¿å®æ½\",\"åé¦æ¶éä¸æç»­ä¼å\"],\"speakerNotes\":\"éæ­¥è§£éæ¯ä¸ªæ­¥éª¤ï¼å¹¶å¼ºè°åæ­¥éª¤çéè¦æ§ã\"},{\"id\":\"slide_d7d17134a5b6\",\"type\":\"metrics\",\"layout\":\"metric-cards\",\"visualHint\":\"dashboard style display\",\"title\":\"é¡¹ç®æåææ \",\"subtitle\":\"è¡¡éAIå®¢æé¡¹ç®ææçå\u0085³é®ææ \",\"takeaway\":\"éè¿æ°æ®é©±å¨å³ç­ï¼ç¡®ä¿é¡¹ç®çæç»­æ¹è¿ã\",\"bullets\":[\"å®¢æ·æ»¡æåº¦æå20%\",\"å¹³åååºæ¶é´éä½50%\",\"å®¢æ·å¨è¯¢å¤çéå¢å 30%\",\"äººå·¥å®¢æææ¬éä½15%\"],\"speakerNotes\":\"è®¨è®ºå¦ä½éè¿è¿äºææ è¯ä¼°é¡¹ç®çææã\"}]}}",
+                     "relatedTaskId":  "task_409ca3262c2c",
+                     "relatedRecordId":  null,
+                     "sequenceNo":  3,
+                     "createdAt":  "2026-05-09T16:24:37.034135+08:00"
+                 }
+             ],
+    "timestamp":  "2026-05-09T16:24:54.8197958+08:00"
+}
